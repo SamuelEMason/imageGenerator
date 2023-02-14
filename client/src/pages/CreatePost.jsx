@@ -7,25 +7,81 @@ import { FormField, Loader } from '../components';
 
 const CreatePost = () => {
 	const navigate = useNavigate();
-	const [form, setform] = useState({
+
+	const [form, setForm] = useState({
 		name: '',
 		prompt: '',
 		photo: '',
 	});
+	
 	const [generatingImg, setGeneratingImg] = useState(false);
 	const [loading, setLoading] = useState(false);
 
-	const generateImage = () => {};
+	const generateImage = async () => {
+		if (form.prompt) {
+			try {
+				setGeneratingImg(true);
+				const response = await fetch(
+					'http://localhost:8080/api/v1/dalle',
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ prompt: form.prompt }),
+					}
+				);
 
-	const handleSubmit = () => {};
+				const data = await response.json();
+
+				setForm({
+					...form,
+					photo: `data:image/jpeg;base64,${data.photo}`,
+				});
+			} catch (error) {
+				alert('1: ' + error);
+			} finally {
+				setGeneratingImg(false);
+			}
+		} else {
+			alert('Please enter a prompt');
+		}
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+
+		if (form.prompt && form.photo) {
+			setLoading(true);
+			
+			try {
+				const response = await fetch('http://localhost:8080/api/v1/post', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(form)
+				})
+
+				await response.json();
+				navigate('/');
+			} catch (error) {
+				alert(error);
+			} finally {
+				setLoading(false);
+			}
+		} else {
+			alert('Please enter in a prompt and generate an image');
+		}
+	};
 
 	const handleChange = (e) => {
-		setform( {...form, [e.target.name]: e.target.value })
+		setForm({ ...form, [e.target.name]: e.target.value });
 	};
 
 	const handleSurpriseMe = () => {
 		const randomPrompt = getRandomPrompt(form.prompt);
-		setform({ ...form, prompt: randomPrompt });
+		setForm({ ...form, prompt: randomPrompt });
 	};
 
 	return (
@@ -108,10 +164,11 @@ const CreatePost = () => {
 						once you have created the image you want, you can share
 						it with others in the community
 					</p>
-					<button type="submit"
-					className='mt-3 text-white bg-[#6469ff]
+					<button
+						type="submit"
+						className="mt-3 text-white bg-[#6469ff]
 					font-medium rounded-md text-sm w-full sm:w-auto
-					px-5 py-2.5 text-center'
+					px-5 py-2.5 text-center"
 					>
 						{loading ? 'sharing...' : 'share with the community'}
 					</button>
